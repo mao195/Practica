@@ -1,0 +1,521 @@
+---
+title: "Limpieza y análisis de datos"
+author: "Mauricio Mosquera Sánchez."
+date: "24-12-2020"
+output:
+  prettydoc::html_pretty:
+    toc: true
+    theme: architect
+    highlight: github
+    number_sections: true
+---
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+library(dplyr)    
+library(tidyr)     
+library(readr)
+library(ISLR)
+library(tidyverse)
+library(nortest)
+library(scatterplot3d)
+library(car)
+library(vcd)
+library(psych)
+library(ggplot2)
+library(moments)
+library(tree)
+library(randomForest)
+library(caret)
+library(corrplot)
+library(rpart)
+library(rpart.plot)
+```
+
+# Detalles de la actividad
+
+## Descripción
+
+<p style="text-align:justify;">En esta práctica se elabora un caso práctico orientado a aprender a identificar los datos relevantes para un proyecto analítico y usar las herramientas de integración, limpieza, validación y análisis de las mismas.</p>
+
+- Ejemplo: https://github.com/Bengis/nba-gap-cleaning
+- Ejemplo complejo (archivo adjunto).
+
+## Objetivos
+
+Los objetivos concretos de esta práctica son:
+
+- <p style="text-align:justify;">Aprender a aplicar los conocimientos adquiridos y su capacidad de resolución de problemas en entornos nuevos o poco conocidos dentro de contextos más amplios o multidisciplinares.</p>
+- <p style="text-align:justify;">Saber identificar los datos relevantes y los tratamientos necesarios (integración, limpieza y validación) para llevar a cabo un proyecto analítico.</p>
+- Aprender a analizar los datos adecuadamente para abordar la información contenida en los datos.
+- <p style="text-align:justify;">Identificar la mejor representación de los resultados para aportar conclusiones sobre el problema planteado en el proceso analítico.</p>
+- <p style="text-align:justify;">Actuar con los principios éticos y legales relacionados con la manipulación de datos en función del ámbito de aplicación.</p>
+- <p style="text-align:justify;">Desarrollar las habilidades de aprendizaje que les permitan continuar estudiando de un modo que tendrá que ser en gran medida autodirigido o autónomo.</p>
+- <p style="text-align:justify;">Desarrollar la capacidad de búsqueda, gestión y uso de información y recursos en el ámbito de la ciencia de datos.</p>
+
+## Competencias
+
+En esta práctica se desarrollan las siguientes competencias del Máster de Data Science:
+
+- <p style="text-align:justify;">Capacidad de analizar un problema en el nivel de abstracción adecuado a cada situación y aplicar las habilidades y conocimientos adquiridos para abordarlo y resolverlo.</p>
+- <p style="text-align:justify;">Capacidad para aplicar las técnicas específicas de tratamiento de datos (integración, transformación, limpieza y validación) para su posterior análisis.</p>
+
+# Desarrollo
+
+## Descripción del dataset.
+
+<p style="text-align:justify;">El conjunto de datos objeto de análisis esta compuesto por 12 columnas y 1599 filas. Estos datos están relacionados con la variante tinto del vino portugués "Vinho Verde" los cuales fueron obtenidos a partir del enlace en Kaggle: **https://www.kaggle.com/uciml/red-wine-quality-cortez-et-al-2009**. Las variables encontradas en los datos son las siguientes:</p>
+
+Variables de entrada (basadas en pruebas fisicoquímicas):
+
+- <p style="text-align:justify;">**fixed acidity:** acidez fija (ácido tartárico - g/dm^3) se debe a los ácidos orgánicos involucrados con el vino.</p>
+- <p style="text-align:justify;">**volatile acidity:** acidez volátil (ácido acético - g/dm^3) se debe a la cantidad de ácido acético en el vino, que en niveles demasiado altos puede provocar un sabor desagradable a vinagre.</p>
+- <p style="text-align:justify;">**citric acid:** ácido cítrico (g/dm^3) es un corrector de la acidez en vinos y se encuentra en pequeñas cantidades, el ácido cítrico puede agregar "frescura" y sabor a los vinos.</p>
+- <p style="text-align:justify;">**residual sugar:** azúcar residual (g/dm^3) es la cantidad de azúcar que queda después de que se detiene la fermentación, es raro encontrar vinos con menos de 1 gramo/litro y vinos con más de 45 gramos/litro se consideran dulces.</p>
+- **chlorides:** cloruros (cloruro de sodio - g/dm^3) es la cantidad de sal en el vino.
+- <p style="text-align:justify;">**free sulfur dioxide:** dióxido de azufre libre (mg/dm^3) es la forma libre de SO2 existente en equilibrio entre el SO2 molecular (como gas disuelto) y el ion bisulfito; previene el crecimiento microbiano y la oxidación del vino.</p>
+- <p style="text-align:justify;">**total sulfur dioxide:** dióxido de azufre total (mg/dm^3) es la cantidad de formas libres y unidas de SO2; en bajas concentraciones, el SO2 es mayormente indetectable en el vino, pero en concentraciones de SO2 libre superiores a 50 ppm, el SO2 se hace evidente en la nariz y el sabor del vino.</p>
+- <p style="text-align:justify;">**density:** Densidad (g/cm^3) la densidad del vino es cercana a la del agua dependiendo del porcentaje de alcohol y contenido de azúcar.</p>
+- <p style="text-align:justify;">**pH:** pH describe qué tan ácido o básico es un vino en una escala de 0 (muy ácido) a 14 (muy básico); la mayoría de los vinos están entre 3-4 en la escala de pH.</p>
+- <p style="text-align:justify;">**sulphates:** sulfatos (sulfato de potasio - g/dm3) es un aditivo del vino que puede contribuir a los niveles de dióxido de azufre (S02), actúa como antimicrobiano y antioxidante.</p>
+- **alcohol:** alcohol (% por volumen) porcentaje de contenido de alcohol en el vino.
+
+Variable de salida (basada en datos sensoriales):
+
+- **quality:** calidad (puntuación entre 0 y 10)
+
+**¿Por qué es importante y qué pregunta/problema pretende responder?**
+
+<p style="text-align:justify;">Los parámetros para medir la calidad del vino son varios. Algunos de ellos están relacionados al gusto, otros al aspecto visual y estético, otros a las uvas con las que está hecho. Conocer cada uno de esos aspectos es esencial para hacer una buena elección y servir en la copa un maravilloso vino. Este análisis está centrado principalmente en la calidad del vino en su variedad tinto (rojo). La "calidad" del vino, la cual es típicamente medida, tiene componentes subjetivos, los cuales controlan en mayor o menor medida el sabor. Sin embargo, la principal pregunta planteada es:</p>
+
+<p style="text-align:justify;">¿Es posible ver alguna relación entre la calidad del vino y los índices tomados mediante pruebas fisioquimicas?</p> 
+
+## Integración y selección de los datos de interés a analizar.
+
+```{r message=FALSE, warning=FALSE}
+# Cargar los datos
+dataset <- read_csv("C:/Users/Acer/Dropbox/Data science/Tipologia y ciclo de vida de los datos/Bloque 3 - Limpieza y análisis de los datos/Limpieza y análisis de datos/winequality-red.csv")
+```
+
+<p style="text-align:justify;">El conjunto de datos tiene 11 variables que pueden influir en la calidad del vino por lo que para su análisis conservaremos todas las variables para su análisis:</p>
+
+## Limpieza de los datos.
+
+```{r}
+# Identificar la clase de las variables
+sapply(dataset, function(x) class(x))
+```
+
+### ¿Los datos contienen ceros o elementos vacíos? ¿Cómo gestionarías cada uno de estos casos?
+
+```{r}
+# Conocer el número de NAs por columna
+colSums(is.na(dataset))
+
+# Conocer los valores 0
+sapply(dataset, function(x) sum(x==0))
+```
+
+<p style="text-align:justify;">En este conjunto de datos no existe ninguna variable que contenga elementos vacíos, la variable ácido cítrico tiene 132 elementos con valor 0. En nuestro caso se los conserva ya que es una variables que se mide en cantidades muy pequeñas inclusive puede no haber cantidad de ácido cítrico en el vino</p>
+
+### Identificación y tratamiento de valores extremos.
+
+```{r}
+# Identificar los outliers
+sapply(dataset[-12], function(x) boxplot.stats(x)$out)
+```
+```{r}
+# Imputar los outliers
+impute_outliers <- function(x){
+  quantiles <- quantile(x, c(0.05, 0.95))
+  x[x<quantiles[1]] <- mean(x)
+  x[x>quantiles[2]] <- median(x)
+  x
+}
+dataset$`fixed acidity`<-round(impute_outliers(dataset$`fixed acidity`),1)
+dataset$`volatile acidity`<-round(impute_outliers(dataset$`volatile acidity`),3)
+dataset$`citric acid`<-round(impute_outliers(dataset$`citric acid`),2)
+dataset$`residual sugar`<-round(impute_outliers(dataset$`residual sugar`),2)
+dataset$chlorides<-round(impute_outliers(dataset$chlorides),3)
+dataset$`free sulfur dioxide`<-round(impute_outliers(dataset$`free sulfur dioxide`),0)
+dataset$`total sulfur dioxide`<-round(impute_outliers(dataset$`total sulfur dioxide`),0)
+dataset$density<-round(impute_outliers(dataset$density),4)
+dataset$pH<-round(impute_outliers(dataset$pH),2)
+dataset$sulphates<-round(impute_outliers(dataset$sulphates),2)
+dataset$alcohol<-round(impute_outliers(dataset$alcohol),1)
+```
+
+## Análisis de los datos.
+
+### Selección de los grupos de datos que se quieren analizar/comparar.
+
+```{r}
+# Selección de los grupos
+select(dataset, `fixed acidity`, quality)
+select(dataset, `volatile acidity`, quality)
+select(dataset, `citric acid`, quality)
+select(dataset, `residual sugar`, quality)
+select(dataset, chlorides, quality)
+select(dataset, `free sulfur dioxide`, quality)
+select(dataset, `total sulfur dioxide`, quality)
+select(dataset, density, quality)
+select(dataset, pH, quality)
+select(dataset, sulphates, quality)
+select(dataset, alcohol, quality)
+```
+
+### Comprobación de la normalidad y homogeneidad de la varianza.
+
+```{r}
+# Comprobar la normalidad
+sapply(dataset, function(x) lillie.test(x))
+```
+
+<p style="text-align:justify;">Existe evidencia estadística para rechazar la H0. Es decir, podemos afirmar que las variables del dataset no tienen una distribución normal.</p>
+
+```{r}
+# homogeneidad de la varianza
+sapply(dataset, function(x) var(x))
+```
+
+Las varianzas de las variables del dataset no son iguales
+
+#### Acidez fija
+
+```{r fig.align='center'}
+hist(dataset$`fixed acidity`,main = 'Histograma de Acidez Fija',xlab = 'Acidez Fija', col="blue")
+```
+
+```{r fig.align='center'}
+boxplot(dataset$`fixed acidity`,horizontal = TRUE, col="blue")
+```
+
+```{r}
+summary(dataset$`fixed acidity`)
+sd(dataset$`fixed acidity`)
+kurtosis(dataset$`fixed acidity`)
+skewness(dataset$`fixed acidity`)
+```
+
+<p style="text-align:justify;">En base al diagrama de cajas se estableció un máximo y mínimo de (11.80) y (6.10) respectivamente, el histograma de frecuencia ubicaba la mayor cantidad de datos en el intervalo [8.00, 8.50] en el cual se encuentra la media (8.21) y la mediana (8.10). Esta variable presenta una desviacion estandar de (1.28) siendo aun valores cercanos; tiene una curtosis de (2.96) y representa una distribución Platicúrtica; además tiene un sesgo de (0.73) que representa tener una asimetría positiva.</p>
+
+#### Acidez volátil
+
+```{r fig.align='center'}
+hist(dataset$`volatile acidity`,main = 'Histograma de Acidez volátil',xlab = 'Acidez volátil', col="green")
+```
+
+```{r fig.align='center'}
+boxplot(dataset$`volatile acidity`,horizontal = TRUE, col="green")
+```
+
+```{r}
+summary(dataset$`volatile acidity`)
+sd(dataset$`volatile acidity`)
+kurtosis(dataset$`volatile acidity`)
+skewness(dataset$`volatile acidity`)
+```
+
+<p style="text-align:justify;">En base al diagrama de cajas se estableció un máximo y mínimo de (0.84) y (0.27) respectivamente, el histograma de frecuencia ubicaba la mayor cantidad de datos en el intervalo [0.50, 0.55] en el cual se encuentra la media (0.52) y la mediana (0.53). Esta variable presenta una desviacion estandar de (0.13) siendo aun valores cercanos; tiene una curtosis de (2.35) y representa una distribución Platicúrtica; además tiene un sesgo de (0.13) que representa tener una simetría.</p>
+
+#### Ácido cítrico
+
+```{r fig.align='center'}
+hist(dataset$`citric acid`,main = 'Histograma de Ácido cítrico',xlab = 'Ácido cítrico', col="red")
+```
+
+```{r fig.align='center'}
+boxplot(dataset$`citric acid`,horizontal = TRUE, col="red")
+```
+
+```{r}
+summary(dataset$`citric acid`)
+sd(dataset$`citric acid`)
+kurtosis(dataset$`citric acid`)
+skewness(dataset$`citric acid`)
+```
+
+<p style="text-align:justify;">En base al diagrama de cajas se estableció un máximo y mínimo de (0.60) y (0.00) respectivamente, el histograma de frecuencia ubicaba la mayor cantidad de datos en el intervalo [0.25, 0.30] en el cual se encuentra la media (0.25) y la mediana (0.26). Esta variable presenta una desviacion estandar de (0.17) siendo aun valores cercanos; tiene una curtosis de (1.90) y representa una distribución Platicúrtica; además tiene un sesgo de (0.3) que representa tener una simetría.</p>
+
+
+#### Azúcar residual
+
+```{r fig.align='center'}
+hist(dataset$`residual sugar` ,main = 'Histograma de Azúcar residual',xlab = 'Azúcar residual',col="yellow")
+```
+
+```{r fig.align='center'}
+boxplot(dataset$`residual sugar`, horizontal = TRUE, col="yellow")
+```
+
+```{r}
+summary(dataset$`residual sugar`)
+sd(dataset$`residual sugar`)
+kurtosis(dataset$`residual sugar`)
+skewness(dataset$`residual sugar`)
+```
+
+<p style="text-align:justify;">En base al diagrama de cajas se estableció un máximo y mínimo de (5.10) y (1.60) respectivamente, el histograma de frecuencia ubicaba la mayor cantidad de datos en el intervalo [2.00, 2.50] en el cual se encuentra la media (2.34) y la mediana (2.20). Esta variable presenta una desviacion estandar de (0.59) siendo estos valores muy cercanos; tiene una curtosis de (7.51) y representa una distribución leptocúrtica; además tiene un sesgo de (1.87) que representa tener una asimetría ya que los datos estan muy sesgados.</p>
+
+#### cloruros
+
+```{r fig.align='center'}
+hist(dataset$chlorides ,main = 'Histograma de Cloruros',xlab = 'Cloruros')
+```
+
+```{r fig.align='center'}
+boxplot(dataset$chlorides, horizontal = TRUE)
+```
+
+```{r}
+summary(dataset$chlorides)
+sd(dataset$chlorides)
+kurtosis(dataset$chlorides)
+skewness(dataset$chlorides)
+```
+
+<p style="text-align:justify;">En base al diagrama de cajas se estableció un máximo y mínimo de (0.13) y (0.05) respectivamente, el histograma de frecuencia ubicaba la mayor cantidad de datos en el intervalo [0.08, 0.09] en el cual se encuentra la media (0.08) y la mediana (0.08). Esta variable presenta una desviacion estandar de (0.014) siendo estos valores muy cercanos; tiene una curtosis de (3.63) y representa una distribución leptocúrtica; además tiene un sesgo de (0.65) que representa tener una asimetría positiva.</p>
+
+#### dióxido de azufre libre
+
+```{r fig.align='center'}
+hist(dataset$`free sulfur dioxide` ,main = 'Histograma de Dióxido de azufre libre',xlab = 'dióxido de azufre libre',col="blue")
+```
+
+```{r fig.align='center'}
+boxplot(dataset$`free sulfur dioxide`, horizontal = TRUE,col="blue")
+```
+
+```{r}
+summary(dataset$`free sulfur dioxide`)
+sd(dataset$`free sulfur dioxide`)
+kurtosis(dataset$`free sulfur dioxide`)
+skewness(dataset$`free sulfur dioxide`)
+```
+
+<p style="text-align:justify;">En base al diagrama de cajas se estableció un máximo y mínimo de (35.00) y (4.00) respectivamente, el histograma de frecuencia ubicaba la mayor cantidad de datos en el intervalo [14.00, 16.00] en el cual se encuentra la media (14.93) y la mediana (15.00). Esta variable presenta una desviacion estandar de (7.89) siendo estos valores muy alejados; tiene una curtosis de (2.66) y representa una distribución Platicúrtica; además tiene un sesgo de (0.67) que representa tener una asimetría positiva.</p>
+
+#### dióxido de azufre total
+
+```{r fig.align='center'}
+hist(dataset$`total sulfur dioxide` ,main = 'Histograma de Dióxido de azufre total',xlab = 'Dióxido de azufre total',col="green")
+```
+
+```{r fig.align='center'}
+boxplot(dataset$`total sulfur dioxide`, horizontal = TRUE, col="green")
+```
+
+```{r}
+summary(dataset$`total sulfur dioxide`)
+sd(dataset$`total sulfur dioxide`)
+kurtosis(dataset$`total sulfur dioxide`)
+skewness(dataset$`total sulfur dioxide`)
+```
+
+<p style="text-align:justify;">En base al diagrama de cajas se estableció un máximo y mínimo de (112.00) y (11.00) respectivamente, el histograma de frecuencia ubicaba la mayor cantidad de datos en el intervalo [40.00, 50.00] en el cual se encuentra la media (43.16) y la mediana (41.00). Esta variable presenta una desviacion estandar de (24.14) siendo estos valores muy alejados; tiene una curtosis de (3.11) y representa una distribución leptocúrtica; además tiene un sesgo de (0.88) que representa tener una asimetría positiva.</p>
+
+#### pH
+
+```{r fig.align='center'}
+hist(dataset$pH ,main = 'Histograma de pH',xlab = 'pH',col="red")
+```
+
+```{r fig.align='center'}
+boxplot(dataset$pH, horizontal = TRUE, col="red")
+```
+
+```{r}
+summary(dataset$pH)
+sd(dataset$pH)
+kurtosis(dataset$pH)
+skewness(dataset$pH)
+```
+
+<p style="text-align:justify;">En base al diagrama de cajas se estableció un máximo y mínimo de (3.57) y (3.06) respectivamente, el histograma de frecuencia ubicaba la mayor cantidad de datos en el intervalo [3.30, 3.35] en el cual se encuentra la media (3.31) y la mediana (3.31). Esta variable presenta una desviacion estandar de (0.11) siendo estos valores muy cercanos; tiene una curtosis de (2.56) y representa una distribución Platicúrtica; además tiene un sesgo de (0.06) que representa tener bastante simetría.</p>
+
+#### sulfatos
+
+```{r fig.align='center'}
+hist(dataset$sulphates ,main = 'Histograma de Sulfatos',xlab = 'Sulfatos',col="yellow")
+```
+
+```{r fig.align='center'}
+boxplot(dataset$sulphates, horizontal = TRUE,col="yellow")
+```
+
+```{r}
+summary(dataset$sulphates)
+sd(dataset$sulphates)
+kurtosis(dataset$sulphates)
+skewness(dataset$sulphates)
+```
+
+<p style="text-align:justify;">En base al diagrama de cajas se estableció un máximo y mínimo de (0.93) y (0.47) respectivamente, el histograma de frecuencia ubicaba la mayor cantidad de datos en el intervalo [0.60, 0.65] en el cual se encuentra la media (0.64) y la mediana (0.63). Esta variable presenta una desviacion estandar de (0.10) siendo estos valores muy cercanos; tiene una curtosis de (2.89) y representa una distribución Platicúrtica; además tiene un sesgo de (0.67) que representa tener una asimetría positiva.</p>
+
+#### alcohol
+
+```{r fig.align='center'}
+hist(dataset$alcohol ,main = 'Histograma de Alcohol',xlab = 'Alcohol')
+```
+
+```{r fig.align='center'}
+boxplot(dataset$alcohol, horizontal = TRUE)
+```
+
+```{r}
+summary(dataset$alcohol)
+sd(dataset$alcohol)
+kurtosis(dataset$alcohol)
+skewness(dataset$alcohol)
+```
+
+<p style="text-align:justify;">En base al diagrama de cajas se estableció un máximo y mínimo de (12.50) y (9.20) respectivamente, el histograma de frecuencia ubicaba la mayor cantidad de datos en el intervalo [10.20, 10.40] en el cual se encuentra la media (10.36) y la mediana (10.30). Esta variable presenta una desviacion estandar de (0.86) siendo estos valores cercanos; tiene una curtosis de (2.53) y representa una distribución Platicúrtica; además tiene un sesgo de (0.64) que representa tener una asimetría positiva.</p>
+
+#### calidad
+
+```{r fig.align='center'}
+hist(dataset$quality ,main = 'Histograma de Calidad',xlab = 'Calidad',col="blue")
+```
+
+```{r fig.align='center'}
+boxplot(dataset$quality, horizontal = TRUE, col="blue")
+```
+
+```{r}
+summary(dataset$quality)
+sd(dataset$quality)
+kurtosis(dataset$quality)
+skewness(dataset$quality)
+```
+
+<p style="text-align:justify;">En base al diagrama de cajas se estableció un máximo y mínimo de (8.0) y (3.0) respectivamente, el histograma de frecuencia ubicaba la mayor cantidad de datos en el intervalo [5.0, 6.0] en el cual se encuentra la media (5.6) y la mediana (6.0). Esta variable presenta una desviacion estandar de (0.81) siendo estos valores cercanos; tiene una curtosis de (3.29) y representa una distribución leptocúrtica; además tiene un sesgo de (0.22) que representa tener una simetría.</p>
+
+### Aplicación de pruebas estadísticas para comparar los grupos de datos. 
+
+<p style="text-align:justify;">En función de los datos y el objetivo del estudio, aplicar pruebas de contraste de hipótesis, correlaciones, regresiones, etc. Aplicar al menos tres métodos de análisis diferentes.</p>
+
+#### Correlaciones
+
+```{r fig.align='center'}
+# Coeficiente de correlación parcial
+cor.test(dataset$`fixed acidity`, dataset$quality, method = "pearson")
+cor.test(dataset$`volatile acidity`, dataset$quality, method = "pearson")
+cor.test(dataset$`citric acid`, dataset$quality, method = "pearson")
+cor.test(dataset$`residual sugar`, dataset$quality, method = "pearson")
+cor.test(dataset$chlorides, dataset$quality, method = "pearson")
+cor.test(dataset$`free sulfur dioxide`, dataset$quality, method = "pearson")
+cor.test(dataset$`total sulfur dioxide`, dataset$quality, method = "pearson")
+cor.test(dataset$density, dataset$quality, method = "pearson")
+cor.test(dataset$pH, dataset$quality, method = "pearson")
+cor.test(dataset$sulphates, dataset$quality, method = "pearson")
+cor.test(dataset$alcohol, dataset$quality, method = "pearson")
+
+# Matriz de correlaciones
+corrplot(corr = cor(x = dataset, method = "pearson"), method = "number",
+         tl.cex = 0.7,number.cex = 0.8, cl.pos = "n")
+```
+
+<p style="text-align:justify;">Las variables acidez volátil (r = -0.31, p-value = < 2.2e-16), sulfato (r = 0.37, p-value = < 2.2e-16) y alcohol (r = 0.43, p-value = < 2.2e-16) tiene una correlacion media con la variable calidad en comparación con las otras variables del dataset que tienen correlación insignificante.</p>
+
+#### Regresiones
+
+```{r}
+# Regresión lineal simple
+summary(lm(quality~`fixed acidity`, data=dataset))
+summary(lm(quality~`volatile acidity`, data=dataset))
+summary(lm(quality~`citric acid`, data=dataset))
+summary(lm(quality~`residual sugar`, data=dataset))
+summary(lm(quality~chlorides, data=dataset))
+summary(lm(quality~`free sulfur dioxide`, data=dataset))
+summary(lm(quality~`total sulfur dioxide`, data=dataset))
+summary(lm(quality~density, data=dataset))
+summary(lm(quality~pH, data=dataset))
+summary(lm(quality~sulphates, data=dataset))
+summary(lm(quality~alcohol, data=dataset))
+
+# Regresión lineal multiple
+summary(lm(quality~., data=dataset))
+```
+
+- <p style="text-align:justify;">El predictor sulfato en el modelo simple, es capaz de explicar el 13.38% de la variabilidad observada en la calidad del vino tinto.</p>
+- <p style="text-align:justify;">El predictor alcohol en el modelo simple, es capaz de explicar el 18.44% de la variabilidad observada en la calidad del vino tinto.</p<
+- <p style="text-align:justify;">El p-value del estadístico F es muy pequeño, lo que indica que el predictor acidez volátil, sulfato y alcohol estan significativamente relacionadas con la variable respuesta calidad del vino tinto.</p>
+
+#### Random forest y tree decision
+
+```{r fig.align='center'}
+# Conversión de la variable quality a tipo factor
+dataset$quality<-factor(dataset$quality)
+
+# División de los datos en train y test
+set.seed(123)
+train <- sample(1:nrow(dataset), round(nrow(dataset)*0.7), replace = FALSE)
+dataset_train <- dataset[train,]
+dataset_test  <- dataset[-train,]
+
+# Entrenamiento del modelo tree decision
+set.seed(123)
+names(dataset_train)<-make.names(names(dataset_train))
+modelo <- rpart(quality ~ ., data = dataset_train)
+rpart.plot(modelo)
+
+# Hacer predicciones del modelos
+names(dataset_test)<-make.names(names(dataset_test))
+prediccion <- predict(modelo, dataset_test, type = "class")
+
+# Matriz de confusión
+confusionMatrix(prediccion, dataset_test$quality)
+```
+
+<p style="text-align:justify;">En nuestro modelo tree decision, hay variables que aparecen entre las cuales tenemos: alcohol con un valor de 10 seguido de Sulfato con un valor de 0.67 y Acidez volátill con un valor de 0.55 y es muy probable que si repetimos este ejercicio suficientes veces, encontraremos las mismas variables.</p>
+
+```{r message=FALSE, warning=FALSE}
+# Entrenamiento del modelo random forest
+set.seed(123)
+modelo1 <- randomForest(quality ~ ., data = dataset_train)
+modelo1$importance
+
+# Hacer predicciones del modelos
+names(dataset_test)<-make.names(names(dataset_test))
+predicciones <- predict(modelo1, dataset_test)
+
+# Matriz de confusión
+confusionMatrix(predicciones, dataset_test$quality)
+```
+
+<p style="text-align:justify;">En nuestro modelo random forest, hay variables con mayor importancia segun MeanDecreaseGini, entre las cuales tenemos: alcohol con un valor de 110 seguido de Sulfato con un valor de 79 y Acidez volátill con un valor de 71 y es muy probable que si repetimos este ejercicio suficientes veces, encontraremos las mismas variables.</p>
+
+<p style="text-align:justify;">En conclusión, el modelo random forest clasifica mejor las variables ya que se obtuvo mayor precisión en comparación con tree decisión; sin embargo los dos métodos clasificaron las mismas variables.</p>
+
+## Representación de los resultados a partir de tablas y gráficas.
+
+
+|    Método   | Variables  | Resultados |
+|:-----------:|:----------:|:----------:|
+|             |acidez volátil/quality|r = -0.31|
+|Correlación  |sulfato/quality|r = 0.37|
+|             |alcohol/quality|r = 0.43|
+|                                                           |
+|             |acidez volátil/quality|R-squared:  0.09393|
+|Regresión    |sulfato/quality|R-squared:  0.1338|
+|             |alcohol/quality|R-squared:  0.1844|
+|                                                           |
+|             |acidez volátil|MeanDecreaseGini:  71.13|
+|Random forest|sulfato|MeanDecreaseGini:  78.95|
+|             |alcohol|MeanDecreaseGini:  110.09|
+|                                                           |
+|             |acidez volátil|<0.55|
+|Tree decision|sulfato|<0.67|
+|             |alcohol|<10|
+                                                     
+## Resolución del problema.
+
+<p style="text-align:justify;">En relación a las variables que fueron consideradas importantes por random forest tenemos que la de mayor relevancia es el Alcohol. En la información del apartado estadístico pudimos observar la correlación entre las variables del conjunto de datos. La variable que presenta mayor correlación con la calidad del vino es el alcohol (0.43) .Es observable su importancia en Random Forest ya que presenta los valores más altos con un valor de MeanDecreaseGini (110.09).</p>
+
+# Recursos
+
+- Calvo M, Subirats L, Pérez D (2019). Introducción a la limpieza y análisis de los datos. Editorial UOC.
+- Tutorial de Github (https://guides.github.com/activities/hello-world/)
+- Squire, Megan (2015). Clean Data. Packt Publishing Ltd.
+- Jiawei Han, Micheine Kamber, Jian Pei (2012). Data mining: concepts and techniques. Morgan Kaufmann.
+- Jason W. Osborne (2010). Data Cleaning Basics: Best Practices in Dealing with Extreme Scores. Newborn and Infant Nursing Reviews; 10 (1): pp. 1527-3369.
+- Peter Dalgaard (2008). Introductory statistics with R. Springer Science & Business Media.
+- Wes McKinney (2012). Python for Data Analysis. O’Reilley Media, Inc.
